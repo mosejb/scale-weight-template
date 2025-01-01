@@ -1,0 +1,45 @@
+import subprocess
+import tempfile
+import sys
+import textwrap
+from typing import List, Optional
+
+def script_runner(
+    script: str, 
+    args: Optional[List[str]] = None, 
+    stdin: Optional[str] = None
+) -> str:
+    with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode='w') as temp_script_file:
+        temp_script_file.write(script)
+        temp_script_file.flush()
+
+        command = [sys.executable, temp_script_file.name]
+        if args:
+            command.extend(args)
+
+        try:
+            result = subprocess.run(
+                command,
+                input=stdin,
+                text=True,
+                capture_output=True,
+                check=True
+            )
+            return result.stdout
+        except subprocess.CalledProcessError as e:
+            return e.stdout + e.stderr
+        command = [sys.executable, temp_script_file.name]
+        if args:
+            command.extend(args)
+
+        try:
+            result = subprocess.run(
+                command,
+                input=stdin,
+                text=True,
+                capture_output=True,
+                check=True
+            )
+            return result.stdout
+        except subprocess.CalledProcessError as e:
+            return e.stdout + e.stderr
