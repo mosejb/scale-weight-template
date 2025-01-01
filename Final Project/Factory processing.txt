@@ -1,0 +1,39 @@
+import multiprocessing
+from multiprocessing import Process, Manager
+import uuid
+
+class Factory:
+    def __init__(self):
+        self.manager = Manager()
+        self.results = self.manager.dict()
+        self.working_processes = self.manager.dict()
+
+    @property
+    def working(self):
+        return any(self.working_processes.values())
+
+    def do(self, function, *args, **kwargs) -> int:
+        transaction_id = uuid.uuid4().int  # Generate a unique transaction ID
+        self.working_processes[transaction_id] = True
+
+        def wrapped_function(transaction_id, results, *args, **kwargs):
+            result = function(*args, **kwargs)
+            results[transaction_id] = result
+            self.working_processes[transaction_id] = False
+
+        process = Process(target=wrapped_function, args=(transaction_id, self.results, *args), kwargs=kwargs)
+        process.start()
+
+        return transaction_id
+
+    def get_results(self, transaction_id: int):
+        if transaction_id not in self.results:
+            raise KeyError(f"Transaction ID {transaction_id} not found or task still running.")
+        return self.results[transaction_id]
+
+    def is_completed(self, transaction_id: int) -> bool:
+        return transaction_id in self.results
+
+    def wait(self):
+        while self.working:
+            pass
